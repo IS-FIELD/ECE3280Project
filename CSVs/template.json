@@ -1,0 +1,12 @@
+[
+    {
+        "1st_stage_label": "Computing methodologies",
+        "2nd_stage_label": "Modeling and simulation",
+        "description": "Modeling and simulation is a subfield of computing methodologies that focuses on creating abstract models of complex systems and simulating their behavior over time. This area encompasses a wide range of techniques, including discrete event simulation, agent-based modeling, and system dynamics. It is widely used in various domains such as engineering, economics, biology, and social sciences to analyze and predict the behavior of systems under different conditions."
+    },
+    {
+        "1st_stage_label": "",
+        "2nd_stage_label": "",
+        "description": ""
+    }
+]
