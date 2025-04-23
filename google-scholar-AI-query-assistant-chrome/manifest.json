@@ -1,0 +1,14 @@
+{
+    "name": "Scholar Taxonomy Assistant",
+    "version": "2.0",
+    "manifest_version": 3,
+    "permissions": ["storage", "activeTab"],
+    "content_scripts": [{
+      "matches": ["*://scholar.google.com/*"],
+      "js": ["content.js"],
+      "css": ["styles.css"]
+    }],
+    "action": {
+      "default_popup": "popup.html"
+    }
+  }

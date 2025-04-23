@@ -1,0 +1,29 @@
+/* 继承原有样式体系 */
+.label-selection-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 2rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    max-width: 600px;
+    z-index: 10000;
+  }
+  
+  .label-item {
+    margin: 1rem 0;
+    padding: 1rem;
+    border: 1px solid #eee;
+    border-radius: 8px;
+  }
+  
+  .label-item h3 {
+    color: #2c3e50;
+    margin: 0 0 0.5rem;
+  }
+  
+  .label-item p {
+    color: #7f8c8d;
+    font-size: 0.9em;
+  }
