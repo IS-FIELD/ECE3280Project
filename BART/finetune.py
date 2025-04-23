@@ -2,7 +2,7 @@ import numpy as np
 import evaluate
 import torch
 import pandas as pd
-from datasets import load_from_disk
+from datasets import load_from_disk, Dataset, load_dataset
 from transformers import (
     BartForSequenceClassification,
     BartTokenizerFast,
@@ -11,98 +11,45 @@ from transformers import (
     EvalPrediction,
 )
 import json
-with open ('/mnt/workspace/luyiheng/ECE3280/CSVs/template.json', 'r') as f:
-    dataset = json.load(f)
 
-for item in dataset:
-    f_stage_label = item['1st_stage_label']
-    s_stage_label = item['2nd_stage_label']
-    description = item['description']
+dataset = load_dataset(
+    "json", data_files="/mnt/workspace/luyiheng/ECE3280/CSVs/00_97.json"
+)['train']
 
-
-dataset = pd.DataFrame(dataset)
-labels = dataset["1st_stage_label"].tolist()
-descriptions = dataset["description"].tolist()
+split_dataset = dataset.train_test_split(test_size=0.1, seed=42)
+train_dataset = split_dataset["train"]
+test_dataset = split_dataset["test"]
 
 
-# from convert_classified_feedback_to_zsc_training_data import (
-#     dataset_output as balanced_dataset_file,
-# )
-
-# Load the balanced dataset
-# balanced_dataset = load_from_disk(balanced_dataset_file)
-
-# Assuming balanced_dataset is your preprocessed and balanced dataset
-# train_test_split = balanced_dataset.train_test_split(
-#     test_size=0.1, shuffle=True, seed=42
-# )
-# train_dataset = train_test_split["train"]
-# test_dataset = train_test_split["test"]
-
-# Initialize the tokenizer
 tokenizer = BartTokenizerFast.from_pretrained("facebook/bart-large-mnli")
 
 
-# Function to encode the dataset
-def encode_examples(examples):
-    # 对 description 进行分词
-    encoding = tokenizer(
-        examples["description"],
-        truncation=True,
-        padding="max_length",
-        max_length=256,
-    )
-
-    # 构建标签映射
-    label2id = {
-        "Computing methodologies": 0,
-        # 可以根据你的实际标签继续添加
-        "Network": 1,  # 空标签示例
-    }
-
-    # 将标签转为数字
-    encoding["labels"] = [
-        label2id.get(label, 1) for label in examples["1st_stage_label"]
-    ]
-
-    return encoding
+def expand_descriptions(example):
+    new_examples = []
+    for i in range(1, 11):
+        desc = example.get(f"description {i}", "")
+        if desc and desc.strip():
+            new_examples.append(
+                {
+                    "description": desc,
+                    "1st_stage_label": example["1st_stage_label"],
+                    "2nd_stage_label": example["2nd_stage_label"],
+                    "id": example["id"],
+                }
+            )
+    return new_examples
 
 
-def encode_examples_stage2(examples):
-    # 拼接 description 和 1st_stage_label
-    prompt = [
-        f"{label}: {desc}"
-        for label, desc in zip(examples["1st_stage_label"], examples["description"])
-    ]
-    encoding = tokenizer(
-        prompt,
-        truncation=True,
-        padding="max_length",
-        max_length=256,
-    )
-    # 构建二级标签映射
-    label2id = {
-        "Modeling and simulation": 0,
-        "P2P": 1,
-        # ...根据你的2nd_stage_label补全...
-    }
-    encoding["labels"] = [
-        label2id.get(label, 0) for label in examples["2nd_stage_label"]
-    ]
-    return encoding
+expanded_dataset = dataset.map(expand_descriptions, batched=False).flatten_indices()
 
-
-# print the first record from each dataset
-# print(train_dataset[0])
-# print(test_dataset[0])
-
-# Encode the full dataset
-train_dataset = dataset.map(
-    encode_examples, batched=True
+# 分词
+tokenized_dataset = expanded_dataset.map(
+    lambda x: tokenizer(
+        x["description"], truncation=True, padding="max_length", max_length=256
+    ),
+    batched=True,
 )
-# test_dataset = test_dataset.map(
-#     encode_examples, batched=True
-# )
+
 
 train_dataset.set_format("torch")
 # test_dataset.set_format("torch")
