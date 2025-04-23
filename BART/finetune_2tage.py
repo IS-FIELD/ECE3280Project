@@ -15,14 +15,17 @@ import json
 
 dataset = load_dataset(
     "json", data_files="/mnt/workspace/luyiheng/ECE3280/CSVs/00_97.json"
-)['train']
+)["train"]
 
 
-tokenizer = BartTokenizerFast.from_pretrained("facebook/bart-large-mnli")
+tokenizer = BartTokenizerFast.from_pretrained(
+    "/mnt/data4/luyiheng/BARTfinetune/lr_5e-05/checkpoint-195"
+)
 
 
 def expand_descriptions(batch):
     descriptions = []
+    first_stage_labels = []
     labels = []
     ids = []
     batch_size = len(batch["id"])
@@ -31,9 +34,10 @@ def expand_descriptions(batch):
             desc = batch.get(f"description {i}", [""] * batch_size)[idx]
             if desc and desc.strip():
                 descriptions.append(desc)
-                labels.append(batch["1st_stage_label"][idx])
+                first_stage_labels.append(batch["1st_stage_label"][idx])
+                labels.append(batch["2nd_stage_label"][idx])
                 ids.append(batch["id"][idx])
-    return {"description": descriptions, "1st_stage_label": labels, "id": ids}
+    return {"description": descriptions, "1st_stage_label": first_stage_labels, "2nd_stage_label": labels}
 
 
 expanded_dataset = dataset.map(
@@ -43,21 +47,27 @@ expanded_dataset = dataset.map(
 # 分词
 tokenized_dataset = expanded_dataset.map(
     lambda x: tokenizer(
-        x["description"], truncation=True, padding="max_length", max_length=256
+        x["description"],
+        x["1st_stage_label"],
+        truncation=True,
+        padding="max_length",
+        max_length=256,
     ),
     batched=True,
 )
 
 # 1. 构建 label2id 和 id2label 字典
-labels = list(set(tokenized_dataset["1st_stage_label"]))
+labels = list(set(tokenized_dataset["2nd_stage_label"]))
 label2id = {label: idx for idx, label in enumerate(sorted(labels))}
 id2label = {idx: label for label, idx in label2id.items()}
 
 print(f"label2id: {label2id}")
 print(f"id2label: {id2label}")
+
+
 # 2. 正确添加 labels 字段
 def add_label(example):
-    example["labels"] = label2id[example["1st_stage_label"]]
+    example["labels"] = label2id[example["2nd_stage_label"]]
     return example
 
 
@@ -65,7 +75,7 @@ tokenized_dataset = tokenized_dataset.map(add_label)
 
 
 # 划分训练/验证集
-split_tokenized = tokenized_dataset.train_test_split(test_size=0.1, seed=42)
+split_tokenized = tokenized_dataset.train_test_split(test_size=0.1, seed=96)
 train_dataset = split_tokenized["train"]
 eval_dataset = split_tokenized["test"]
 
@@ -74,7 +84,7 @@ eval_dataset.set_format("torch")
 
 
 config = BartConfig.from_pretrained(
-    "facebook/bart-large-mnli",
+    "/mnt/data4/luyiheng/BARTfinetune/lr_5e-05/checkpoint-195",
     num_labels=len(label2id),
     id2label=id2label,
     label2id=label2id,
@@ -83,7 +93,7 @@ config = BartConfig.from_pretrained(
 
 # Load the model
 model = BartForSequenceClassification.from_pretrained(
-    "facebook/bart-large-mnli", config=config, ignore_mismatched_sizes=True
+    "/mnt/data4/luyiheng/BARTfinetune/lr_5e-05/checkpoint-195", config=config, ignore_mismatched_sizes=True
 )
 
 learning_rate = 5e-5
@@ -96,14 +106,14 @@ gradient_accumulation_steps = int(16 / batch_size)
 # Define training arguments
 training_args = TrainingArguments(
     learning_rate=learning_rate,  # The initial learning rate for Adam
-    output_dir=f"/mnt/data4/luyiheng/BART1/lr_{learning_rate}",  # Output directory
+    output_dir=f"/mnt/data4/luyiheng/AcBART2/lr_{learning_rate}",  # Output directory
     num_train_epochs=5,  # Total number of training epochs
     per_device_train_batch_size=batch_size,  # Batch size per device during training
     per_device_eval_batch_size=eval_batch_size,  # Batch size for evaluation
     gradient_accumulation_steps=gradient_accumulation_steps,
     eval_accumulation_steps=eval_batch_size,
     warmup_steps=500,  # Number of warmup steps for learning rate scheduler
-    logging_dir=f"/mnt/data4/luyiheng/BART1/logs/lr_{learning_rate}",  # Directory for storing logs
+    logging_dir=f"/mnt/data4/luyiheng/AcBART2/logs/lr_{learning_rate}",  # Directory for storing logs
     logging_steps=10,  # log results every x steps
     evaluation_strategy="steps",
     eval_steps=100,  # evaluate every x steps
