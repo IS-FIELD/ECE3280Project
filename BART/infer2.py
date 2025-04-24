@@ -2,19 +2,21 @@ from transformers import BartForSequenceClassification, BartTokenizerFast
 from datasets import load_dataset
 
 
-pre_1st_stage_labels = input("Previous stage label: ") #这里是预先
+pre_1st_stage_labels = input("Previous stage label: ") #这里输入第一个阶段，用户选完的标签
 
 model = BartForSequenceClassification.from_pretrained(
     "/mnt/data4/luyiheng/AcBART2/lr_5e-05/checkpoint-195"
-)
+) #这个模型地址就是整个打包好的文件夹
 
 tokenizer = BartTokenizerFast.from_pretrained(
     "/mnt/data4/luyiheng/AcBART2/lr_5e-05/checkpoint-195"
-)
+) #跟model一样的地址
 
 dataset = load_dataset(
     "json", data_files="/mnt/workspace/luyiheng/ECE3280/CSVs/00_97.json"
-)["train"]
+)[
+    "train"
+]  # json文件就是00_97.son
 
 
 def Align_1st_2nd_stage_labels(example, pre_1st_stage_labels):
@@ -46,7 +48,7 @@ inputs = tokenizer(
 outputs = model(**inputs)
 probs = outputs.logits.softmax(dim=-1)
 
-
+# 这个labels_map下面是所有耳机标签的字典
 labels_map = {
     "0": "Accessibility",
     "1": "Architectures",
@@ -120,8 +122,12 @@ labels_map = {
     "69": "World Wide Web",
 }
 
-print(f"probs: {probs}")
-most_probably_id = probs.argmax(dim=-1).item()
+print(
+    f"probs: {probs}"
+)  # 这个probs是一个tensor，shape是[1, num_labels]，表示labels_map中每个标签的置信度
+
+
+most_probably_id = probs.argmax(dim=-1).item() # 取出置信度最大的二级标签的id，不管在不在一级标签下
 print(f"most_probably_label: {labels_map[str(most_probably_id)]}")
 
 
@@ -139,6 +145,8 @@ def take_2nd_id(limited_2nd_stage_labels, labels_map):
 snd_ids = take_2nd_id(limited_2nd_stage_labels, labels_map)
 
 
+
+#这里是取出用户选定的一级标签下前五的二级标签
 def take_most_prob_in_2nd_id(snd_ids, probs, topk=5):
     # probs: tensor shape [1, num_labels]
     probs = probs.squeeze(0)  # shape: [num_labels]
@@ -155,5 +163,6 @@ def take_most_prob_in_2nd_id(snd_ids, probs, topk=5):
 top5_ids = take_most_prob_in_2nd_id(snd_ids, probs)
 print(f"top5_ids: {top5_ids}")
 print(f"top 5 keyword: {', '.join([labels_map[id] for id in top5_ids])}")
-if most_probably_id not in top5_ids:
+
+if most_probably_id not in top5_ids: # 如果置信度最大的二级标签不在前五个中，说明可能用户选的一级标签是错误的
     print(f"Maybe you should try another key: {labels_map[str(most_probably_id)]}")
