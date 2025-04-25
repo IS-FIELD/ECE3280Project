@@ -1,29 +1,147 @@
-/* 继承原有样式体系 */
-.label-selection-modal {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: white;
-    padding: 2rem;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    max-width: 600px;
-    z-index: 10000;
-  }
-  
-  .label-item {
-    margin: 1rem 0;
-    padding: 1rem;
-    border: 1px solid #eee;
-    border-radius: 8px;
-  }
-  
-  .label-item h3 {
-    color: #2c3e50;
-    margin: 0 0 0.5rem;
-  }
-  
-  .label-item p {
-    color: #7f8c8d;
-    font-size: 0.9em;
-  }
+#assistant-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 400px;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+  padding: 20px;
+  z-index: 10000;
+  font-family: Arial, sans-serif;
+}
+
+#desc-input {
+  width: 100%;
+  height: 100px;
+  margin: 10px 0;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  resize: vertical;
+}
+
+#analyze-btn {
+  background: #4921c1;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  width: 100%;
+  transition: opacity 0.3s;
+}
+
+#analyze-btn:hover {
+  opacity: 0.9;
+}
+
+.selection-panel {
+  margin-top: 15px;
+  border-top: 1px solid #eee;
+  padding-top: 15px;
+}
+
+.selection-item {
+  padding: 10px;
+  margin: 8px 0;
+  border: 1px solid #eee;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.selection-item:hover {
+  transform: translateX(5px);
+  border-color: #4921c1;
+}
+
+.item-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.item-rank {
+  color: #4921c1;
+  font-weight: bold;
+}
+
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255,255,255,0.8);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  border-radius: 10px;
+}
+
+.spinner {
+  width: 30px;
+  height: 30px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #5511dc;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.toast {
+  position: fixed;
+  bottom: 80px;
+  right: 30px;
+  background: #333;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 5px;
+  animation: slideIn 0.3s;
+}
+
+.toast.error {
+  background: #ff4444;
+}
+
+@keyframes slideIn {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+/* Popup Styles */
+.settings-container {
+  padding: 15px;
+  min-width: 300px;
+}
+
+.input-group {
+  margin: 10px 0;
+}
+
+.input-group label {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.input-group input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+#save-settings {
+  background: #4921c1;
+  color: white;
+  border: none;
+  padding: 10px;
+  width: 100%;
+  margin-top: 10px;
+  cursor: pointer;
+}

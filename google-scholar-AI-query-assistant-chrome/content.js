@@ -1,106 +1,164 @@
-// content.js
-let currentSelectedLabels = { level1: null, level2: null };
+const API_ENDPOINT = 'http://localhost:8008/classify';
+let currentState = {
+  originalInput: '',
+  infer1: null,
+  infer2: null
+};
 
-// 创建描述输入框
-function createDescriptionInput() {
+function createUI() {
   const container = document.createElement('div');
-  container.style.cssText = `/* 保持与原插件一致的样式 */`;
-  
-  const textarea = document.createElement('textarea');
-  textarea.placeholder = "Enter research description...";
-  
-  const analyzeBtn = document.createElement('button');
-  analyzeBtn.textContent = "Analyze";
-  analyzeBtn.onclick = async () => {
-    const description = textarea.value.trim();
-    if (description) {
-      const labels = await getTopLabels(description, 'level1');
-      showLabelSelection(labels, 'level1');
-    }
-  };
+  container.id = 'assistant-container';
+  container.innerHTML = `
+    <style>
+      .confidence { color: #4CAF50; font-size: 0.9em; }
+      .explanation { color: #666; font-size: 0.85em; margin-top: 4px; }
+    </style>
+    <div class="header">
+      <h3>Scholar AI Query Assistant</h3>
+    </div>
+    <div class="input-section">
+      <textarea id="desc-input" placeholder="Describe your research..."></textarea>
+      <button id="analyze-btn">Analyze</button>
+    </div>
+    <div id="selection-container"></div>
+    <div class="loading-overlay">
+      <div class="spinner"></div>
+    </div>
+  `;
+  document.body.appendChild(container);
 
-  container.append(textarea, analyzeBtn);
-  document.body.prepend(container);
+  document.getElementById('analyze-btn').addEventListener('click', startAnalysis);
 }
 
-// API请求封装
-async function getTopLabels(text, level) {
+async function startAnalysis() {
+  const input = document.getElementById('desc-input').value.trim();
+  if (!input) return;
+
+  currentState.originalInput = input;
+  showLoading(true);
+
   try {
-    const response = await fetch('YOUR_API_ENDPOINT', {
+    // get infer_1
+    const infer1Result = await fetchLabels(input, 'infer_1');
+    renderSelection(infer1Result, 'Select Primary Category', async (selected) => {
+      currentState.infer1 = selected;
+      
+      // get infer_2
+      const infer2Result = await fetchLabels(input, 'infer_2', selected);
+      renderSelection(infer2Result, 'Select Secondary Category', (selected) => {
+        currentState.infer2 = selected;
+        performSearch();
+      }, 5);
+    }, 3);
+  } catch (error) {
+    showToast(`Error: ${error.message}`, true);
+  } finally {
+    showLoading(false);
+  }
+}
+
+async function fetchLabels(text, infer, context) {
+  try {
+    const response = await fetch(API_ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, level })
+      body: JSON.stringify({
+        text: text,
+        infer: infer,
+        context: context || null
+      })
     });
-    
+
     const data = await response.json();
-    return data.labels.slice(0, level === 'level1' ? 3 : 5);
+    
+    if (!response.ok || data.error) {
+      throw new Error(data.error || 'Request failed');
+    }
+
+    // check
+    if (!data?.labels?.length || !data.labels[0].label) {
+      throw new Error('Invalid response format');
+    }
+
+    return data;
   } catch (error) {
-    console.error('API请求失败:', error);
-    showToast('Failed to get labels', true);
+    showToast(`API Error: ${error.message}`, true);
+    throw error;
   }
 }
 
-// 显示标签选择界面
-function showLabelSelection(labels, level) {
-  const modal = document.createElement('div');
-  modal.className = 'label-selection-modal'; // 使用原有样式体系
-  
-  labels.forEach(label => {
-    const item = document.createElement('div');
-    item.className = 'label-item';
-    
-    const header = document.createElement('h3');
-    header.textContent = Object.keys(label)[0];
-    
-    const desc = document.createElement('p');
-    desc.textContent = Object.values(label)[0];
-    
-    const selectBtn = document.createElement('button');
-    selectBtn.textContent = "Select";
-    selectBtn.onclick = () => handleLabelSelect(level, Object.keys(label)[0]);
-    
-    item.append(header, desc, selectBtn);
-    modal.appendChild(item);
+function renderSelection(data, title, callback, maxItems = 5) {
+  const container = document.getElementById('selection-container');
+  container.innerHTML = `
+    <div class="selection-panel">
+      <h4>${title}</h4>
+      <div class="items-container"></div>
+    </div>
+  `;
+
+  const itemsContainer = container.querySelector('.items-container');
+  data.labels.slice(0, maxItems).forEach((item, index) => {
+    const div = document.createElement('div');
+    div.className = 'selection-item';
+    div.innerHTML = `
+      <div class="item-header">
+        <span class="item-rank">#${index + 1}</span>
+        <h5>${item.label}</h5>
+        <span class="confidence">${(item.score * 100).toFixed(1)}%</span>
+      </div>
+      ${item.explanation ? `<p class="explanation">${item.explanation}</p>` : ''}
+    `;
+    div.addEventListener('click', () => callback(item.label));
+    itemsContainer.appendChild(div);
   });
-  
-  document.body.appendChild(modal);
 }
 
-// 处理标签选择
-async function handleLabelSelect(level, label) {
-  currentSelectedLabels[level] = label;
+function performSearch() {
+  const queryParts = [];
+  if (currentState.infer1) queryParts.push(currentState.infer1);
+  if (currentState.infer2) queryParts.push(currentState.infer2);
+  if (queryParts.length === 0) return;
+  const query = queryParts.join(' ');
   
-  if (level === 'level1') {
-    const subLabels = await getTopLabels(label, 'level2');
-    showLabelSelection(subLabels, 'level2');
+  const form = document.querySelector('form[id="gs_hdr_frm"]');
+  const input = document.querySelector('input[name="q"]');
+  
+  if (form && input) {
+    input.value = query;
+    
+    const event = new Event('input', { bubbles: true });
+    input.dispatchEvent(event);
+    
+    setTimeout(() => {
+      form.submit();
+    }, 100);
   } else {
-    executeSearch();
+    const encodedQuery = encodeURIComponent(query)
+      .replace(/%20/g,'+')
+      .replace(/%2B/g,'+');
+    window.location.href = `https://scholar.google.com/scholar?q=${encodedQuery}`;
   }
 }
 
-// 执行最终搜索
-function executeSearch() {
-  const searchQuery = `${currentSelectedLabels.level1} ${currentSelectedLabels.level2}`;
-  
-  // 根据原有代码的搜索方式
-  const searchBox = document.querySelector('input[name="q"]');
-  if (searchBox) {
-    searchBox.value = searchQuery;
-    document.querySelector('form').submit();
-  } else {
-    window.location.href = `https://scholar.google.com/scholar?q=${encodeURIComponent(searchQuery)}`;
-  }
+function showLoading(show) {
+  document.querySelector('.loading-overlay').style.display = show ? 'flex' : 'none';
 }
 
-// 初始化
-function init() {
-  createDescriptionInput();
-  // 保留原有的事件监听和样式
+function showToast(message, isError = false) {
+  const toast = document.createElement('div');
+  toast.className = `toast ${isError ? 'error' : ''}`;
+  toast.textContent = message;
+  document.body.appendChild(toast);
+
+  setTimeout(() => toast.remove(), 3000);
 }
 
-// 保留原有代码的样式和工具函数
-const originalStyles = document.createElement('style');
-originalStyles.textContent = `/* 原有样式 + 新增选择界面样式 */`;
-document.head.appendChild(originalStyles);
-
-init();
+// init
+if (location.hostname === 'scholar.google.com') {
+  const observer = new MutationObserver(() => {
+    if (document.body && !document.getElementById('assistant-container')) {
+      createUI();
+    }
+  });
+  observer.observe(document.documentElement, { childList: true, subtree: true });
+}
