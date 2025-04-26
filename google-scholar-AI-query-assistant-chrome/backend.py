@@ -164,25 +164,29 @@ async def load_models():
 
 async def get_ollama_explanation(label: str) -> str:
     try:
-        response = await asyncio.wait_for(
-            client.chat(
+        def sync_chat():
+            return client.chat(
                 model="deepseek-llm:7b",
                 messages=[{
                     "role": "user",
                     "content": f"Explain '{label}' in academic terms within 20 words."
                 }]
-            ),
-            timeout=5.0
+            )
+        
+        response = await asyncio.wait_for(
+            run_in_threadpool(sync_chat),
+            timeout=30.0
         )
         return response["message"]["content"]
     except asyncio.TimeoutError:
-        print(f"Ollama timeout for label: {label}")
         return "ollama_no_response"
     except Exception as e:
         print(f"Ollama error for {label}: {str(e)}")
         return "ollama_no_response"
 
+
 async def process_labels_with_explanations(labels: List[str], scores: List[float]) -> List[Dict]:
+    print(f"Processing labels: {labels}")
     tasks = [get_ollama_explanation(label) for label in labels]
     explanations = await asyncio.gather(*tasks)
     
