@@ -1,23 +1,93 @@
-我们要用的预训练模型BART：https://huggingface.co/docs/transformers/v4.28.1/en/model_doc/bart#transformers.BartForSequenceClassification
+# ECE3280Project
+
+## Abstract
+We present an integrated system for novice academic researchers that combines two complementary components:  
+1. **AcBART**, a zero-shot text‐classification plugin that transforms fuzzy user descriptions into precise academic keywords (based on the ACM CCS taxonomy), and  
+2. **MongoPDF**, a privacy-preserving local PDF management and context retrieval framework built on the Model Context Protocol (MCP) and MongoDB GridFS.
+
+Together, these modules enable users to rapidly refine search queries on Google Scholar and perform accurate, on-device document retrieval without exposing sensitive content to external servers.
+
+## Modules
+
+### AcBART
+- Encoder-only adaptation of Facebook’s BART model for two-stage classification (Major → Minor)  
+- Uses ACM CCS (13 top-level categories, 872 leaf classes)  
+- Browser extension demo: suggests precise ACM CCS labels from natural language descriptions  
+
+![AcBART Architecture](AcBART.png)
+<p align="center"><em>Figure 1. AcBART Architecture</em></p>
+
+**Work Flow**
+
+When user input a description, AcBART will list several most likely major labels and ask user to choose a major label, then AcBART will show several most likely minor label, after user choose the minor label, AcBART will search this minor label directly in Google Scholar.
 
 
-数据集规范 MNLI ：https://huggingface.co/datasets/nyu-mll/multi_nli
+**Major Contributions**
+
+1. **AI Classification in Chrome Extension**  
+   First to embed AcBART into Google Scholar via a Chrome extension, guiding users through intuitive text‐input and click interactions and offering optional Ollama‐powered term explanations.
+
+2. **Lightweight Local Inference**  
+   Runs entirely on low‐end PCs or laptops without dedicated GPUs, eliminating cloud dependency and reducing user costs.
+
+3. **High‐Speed Performance**  
+   Delivers results in an average of 0.5961 seconds per request (measured on an NVIDIA RTX 3070 Ti Laptop GPU with an AMD Ryzen 9 6900HS), ensuring rapid, seamless user experience.
 
 
-插件：交互式的缩小范围
-示例
 
-1：用户输入description "Modeling and simulation is a subfield of computing methodologies that focuses on creating abstract models of complex systems and simulating their behavior over time. This area encompasses a wide range of techniques, including discrete event simulation, agent-based modeling, and system dynamics. It is widely used in various domains such as engineering, economics, biology, and social sciences to analyze and predict the behavior of systems under different conditions."
+Here are Usage Demo for using AcBART Plugin in Google Scholar:
+<video src="demo0_no_ollama.mp4" controls autoplay loop muted preload="metadata" width="600">
+</video>
 
-2: 模型给出置信度前3的一级标题并给出一级标题的解释，让用户选择
-[
-{'Computing methodologies':"This field focuses on the study and development of computational methods and techniques, including algorithms, programming models, computer architectures, and computational efficiency. It emphasizes improving system performance, scalability, and exploring new computational approaches such as parallel computing, distributed computing, and quantum computing."}, 
 
-{'Network':"The network field explores computer networks and related technologies, including data transmission, network protocols, network architecture, and network security. It covers networks of different scales, such as Local Area Networks (LAN), Wide Area Networks (WAN), and the internet, with a focus on efficient, reliable, and secure data communication."},
 
-{'Integrated Circuit':"An integrated circuit (IC) refers to the technology of embedding multiple electronic components, such as transistors, resistors, capacitors, and others, onto a single small semiconductor chip. ICs are used in a wide range of electronic devices, including computers, smartphones, and home appliances. The design and manufacturing of ICs involve circuit design, material science, and microelectronics."}
-]
 
-3: 在用户选择完一级标题后给出前5的二级标题，格式和第二步一样，给出解释让用户选择
 
-4：在用户选择完二级标题后，按google scholar（一级，二级）的搜索结果给出默认排名前10的文章
+
+
+
+
+
+
+### MongoPDF
+
+
+- Content-aware classification assigning semantic labels to PDFs in MongoDB GridFS  
+- Label-enforced full-text retrieval under specific tags for coherent, high-precision context  
+- Direct ingestion of GridFS document chunks into the LLM to minimize metadata overhead and maximize context per query  
+
+
+
+
+![MongoPDF Architecture](MongoPDF.png)
+<p align="center"><em>Figure 2. MongoPDF Architecture</em></p>
+
+
+**Work Flow**
+
+  Users communicate with the Cline interface using natural language, which subsequently invokes our MCP server MongoPDF. MongoDB supplies data to the MongoPDF server. The MongoPDF server processes the data and transmits the data embeddings back to Cline. The Cline then forwards these prompts and data embeddings to the Large Language Model (LLM). The LLM's response will be delivered back to the Cline and shown to the user.
+
+
+
+**Major contributions**
+
+
+- **Automatic Document Classification**  
+  We implement a content-aware classification mechanism that automatically assigns semantic labels to documents imported into MongoDB GridFS, facilitating structured management and query optimization.
+
+- **Label-Enforced Contextual Retrieval**  
+  Unlike typical RAG pipelines that rely on shallow retrieval of sparse fields, our system enforces the model to directly read full-text content under specific labels in MongoDB. This preserves contextual coherence, enhances logical reasoning, and significantly improves both precision and response speed.
+
+- **Chunk-Level Model Input via GridFS**  
+  We directly feed GridFS document chunks into the LLM pipeline. By avoiding redundant metadata, this approach alleviates the burden on the model’s context window and enables processing of larger volumes of document content within a single query.
+
+
+
+
+![MongoPDF Output](MongoPDF_output.png)
+<p align="center"><em>Figure 3. MongoPDF Output</em></p>
+
+
+
+
+
