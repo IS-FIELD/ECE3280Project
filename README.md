@@ -1,4 +1,4 @@
-# ECE3280Project
+# EIE3280Project
 
 ## Abstract
 We present an integrated system for novice academic researchers that combines two complementary components:  
