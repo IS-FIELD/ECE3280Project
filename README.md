@@ -2,8 +2,8 @@
 
 ## Abstract
 We present an integrated system for novice academic researchers that combines two complementary components:  
-1. **AcBART**, a zero-shot text‐classification plugin that transforms fuzzy user descriptions into precise academic keywords (based on the ACM CCS taxonomy), and  
-2. **MongoPDF**, a privacy-preserving local PDF management and context retrieval framework built on the Model Context Protocol (MCP) and MongoDB GridFS.
+1. **AcBART**, a zero-shot text‐classification plugin that transforms fuzzy user descriptions into precise academic keywords (based on the ACM CCS taxonomy)
+2. **MongoPDF**, a privacy-preserving local PDF management and context retrieval framework built on the Model Context Protocol (MCP) and MongoDB GridFS
 
 Together, these modules enable users to rapidly refine search queries on Google Scholar and perform accurate, on-device document retrieval without exposing sensitive content to external servers.
 
