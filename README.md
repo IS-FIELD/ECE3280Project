@@ -36,7 +36,7 @@ When user input a description, AcBART will list several most likely major labels
 
 
 Here are Usage Demo for using AcBART Plugin in Google Scholar:
-<img src="demo0_no_ollama.gif" width="600" />
+![Google Scholar Extension Demo](demo0_no_ollama.gif)
 
 
 
