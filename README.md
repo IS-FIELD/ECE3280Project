@@ -36,8 +36,7 @@ When user input a description, AcBART will list several most likely major labels
 
 
 Here are Usage Demo for using AcBART Plugin in Google Scholar:
-<video src="demo0_no_ollama.gif" controls autoplay loop muted preload="metadata" width="600">
-</video>
+<img src="demo0_no_ollama.gif" width="600" />
 
 
 
